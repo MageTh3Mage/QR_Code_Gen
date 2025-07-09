@@ -10,25 +10,36 @@ from urllib.parse import urlparse
 def generate_filename(data):
     if re.match(r'^https?://', data, re.IGNORECASE):
         try:
-            domain = urlparse(data).netloc
-            domain = re.sub(r'^(www\.|m\.|mobile\.)', '', domain)
-            main_part = domain.split('.')[0]
+            parsed = urlparse(data)
+            domain = parsed.netloc
+            domain = re.sub(r'^(www\d*\.|m\.|mobile\.|api\.|app\.|web\.|static\.)', '', domain, flags=re.IGNORECASE)
+            domain_parts = domain.split('.')
+            if len(domain_parts) > 2 and len(domain_parts[-2]) <= 3:
+                main_part = domain_parts[-3]
+            else:
+                main_part = domain_parts[0]
+            main_part = re.sub(r'[^\w-]', '', main_part).lower()
+            path = parsed.path.strip('/')
+            if path:
+                path_part = re.sub(r'[^\w-]', '_', path.split('/')[0]).lower()
+                if len(path_part) > 3 and len(path_part) < 20:
+                    return f"{main_part}_{path_part}.png"
             return f"{main_part}.png"
         except:
             pass
     clean_text = re.sub(r'[^\w\s-]', '', data).strip().lower()
-    words = clean_text.split()
+    words = re.split(r'\s+', clean_text)
     if len(words) > 3:
         return '_'.join(words[:3]) + '.png'
     elif clean_text:
         return clean_text.replace(' ', '_') + '.png'
-    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=6)) + ".png"
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=8)) + ".png"
 
 def create_qr_window(data):
     qr = qrcode.QRCode(
         version=None,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=11,
+        box_size=121,
         border=1,
     )
     qr.add_data(data)
